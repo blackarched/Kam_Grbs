@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeonHack // Camera Infiltration Suite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --neon-pink: #ff2d95;
+            --neon-blue: #0ff0fc;
+            --neon-green: #00ff66;
+            --neon-purple: #8a2be2;
+            --dark-bg: #0a0a12;
+            --darker-bg: #050509;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            z-index: 1;
+            position: relative;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 1px solid var(--neon-pink);
+            box-shadow: 0 5px 15px rgba(255, 45, 149, 0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink), 0 0 30px var(--neon-pink);
+        }
+        
+        .subtitle {
+            color: var(--neon-blue);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .panel {
+            background: rgba(10, 10, 18, 0.8);
+            border: 1px solid var(--neon-blue);
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 240, 252, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        
+        .panel-header {
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--neon-green);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--darker-bg);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            border-radius: 3px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+        
+        button {
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        button:hover {
+            box-shadow: 0 0 15px var(--neon-pink);
+            transform: translateY(-2px);
+        }
+        
+        .results {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgba(5, 5, 9, 0.5);
+            border-radius: 3px;
+            border: 1px solid var(--neon-green);
+        }
+        
+        .device {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: rgba(0, 255, 102, 0.1);
+            border-left: 3px solid var(--neon-green);
+            border-radius: 2px;
+        }
+        
+        .ip-address {
+            font-weight: bold;
+            color: var(--neon-blue);
+        }
+        
+        .mac-address {
+            color: var(--neon-pink);
+        }
+        
+        .credentials {
+            color: var(--neon-green);
+            margin-top: 5px;
+        }
+        
+        .holographic-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            margin: 20px 0;
+        }
+        
+        .grid-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+            background-image: 
+                linear-gradient(rgba(0, 240, 252, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 252, 0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .cyberpunk-globe {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .log-container {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        
+        .log {
+            height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--neon-green);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border: 1px solid var(--neon-green);
+            border-radius: 3px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(1000%); }
+        }
+        
+        .scan-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(0, 255, 102, 0.3), transparent);
+            animation: scan 2s linear;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="particle-canvas"></div>
+    <div class="grid-lines"></div>
+    
+    <div class="container">
+        <header>
+            <h1>NeonHack // Camera Infiltration</h1>
+            <div class="subtitle">CYBERPUNK SECURITY PENETRATION SUITE v2.4.7</div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">NETWORK SCANNER</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="interface">NETWORK INTERFACE</label>
+                    <select id="interface">
+                        <option value="eth0">eth0</option>
+                        <option value="wlan0">wlan0</option>
+                        <option value="en0">en0 (macOS)</option>
+                        <option value="en1">en1 (macOS)</option>
+                    </select>
+                </div>
+                
+                <button id="scan-btn">INITIATE NETWORK SCAN</button>
+                
+                <div class="results" id="scan-results">
+                    <div class="device">
+                        <div class="ip-address">192.168.1.1</div>
+                        <div class="mac-address">AA:BB:CC:DD:EE:FF</div>
+                        <div class="credentials">HTTP: admin/admin</div>
+                    </div>
+                    <div class="device">
+                        <div class="ip-address">192.168.1.105</div>
+                        <div class="mac-address">11:22:33:44:55:66</div>
+                        <div class="credentials">ONVIF: admin/password</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">CREDENTIAL TESTING</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="target-ip">TARGET IP ADDRESS</label>
+                    <input type="text" id="target-ip" placeholder="192.168.1.100">
+                </div>
+                
+                <div class="input-group">
+                    <label for="protocol">PROTOCOL</label>
+                    <select id="protocol">
+                        <option value="http">HTTP Basic Auth</option>
+                        <option value="onvif">ONVIF</option>
+                        <option value="rtsp">RTSP</option>
+                    </select>
+                </div>
+                
+                <button id="test-btn">TEST CREDENTIALS</button>
+                
+                <div class="results" id="test-results">
+                    <div class="credentials">Testing common credentials...</div>
+                    <div class="credentials">admin/admin - FAILED</div>
+                    <div class="credentials">admin/password - SUCCESS</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">CAMERA EXPLOITATION</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="exploit-ip">TARGET IP</label>
+                    <input type="text" id="exploit-ip" placeholder="192.168.1.100">
+                </div>
+                
+                <div class="input-group">
+                    <label for="exploit-type">EXPLOIT TYPE</label>
+                    <select id="exploit-type">
+                        <option value="stream">Stream Capture</option>
+                        <option value="credentials">Credential Harvesting</option>
+                        <option value="persistence">Persistence Installation</option>
+                    </select>
+                </div>
+                
+                <button id="exploit-btn">EXECUTE EXPLOIT</button>
+                
+                <div class="results" id="exploit-results">
+                    <div class="credentials">Select a target and exploit type</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">HOLOGRAPHIC VISUALIZER</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="cyberpunk-globe" id="globe-container">
+                    <!-- 3D globe will be rendered here -->
+                </div>
+                
+                <div class="holographic-line"></div>
+                
+                <div class="input-group">
+                    <label>NETWORK TRAFFIC SIMULATION</label>
+                    <button id="traffic-btn">ACTIVATE VISUALIZATION</button>
+                </div>
+            </div>
+            
+            <div class="log-container panel">
+                <div class="panel-header">
+                    <div class="panel-title">SYSTEM LOG</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="log" id="system-log">
+                    <div class="log-entry">[INFO] System initialized at 20:47:36</div>
+                    <div class="log-entry">[INFO] Network interfaces detected</div>
+                    <div class="log-entry">[STATUS] Ready to scan</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Particle background animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            let particles = [];
+            const colors = ['#ff2d95', '#0ff0fc', '#00ff66', '#8a2be2'];
+            
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 0.5;
+                    this.speedX = Math.random() * 1 - 0.5;
+                    this.speedY = Math.random() * 1 - 0.5;
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    
+                    if (this.x > canvas.width || this.x < 0) {
+                        this.speedX = -this.speedX;
+                    }
+                    if (this.y > canvas.height || this.y < 0) {
+                        this.speedY = -this.speedY;
+                    }
+                }
+                
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Create glowing effect
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+                }
+            }
+            
+            function createParticles() {
+                for (let i = 0; i < 100; i++) {
+                    particles.push(new Particle());
+                }
+            }
+            
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                    
+                    // Draw connections between particles
+                    for (let j = i; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 100) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = particles[i].color;
+                            ctx.lineWidth = 0.2;
+                            ctx.globalAlpha = 1 - distance/100;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                            ctx.closePath();
+                        }
+                    }
+                }
+                
+                requestAnimationFrame(animateParticles);
+            }
+            
+            createParticles();
+            animateParticles();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+            
+            // Add scan effect animation
+            document.getElementById('scan-btn').addEventListener('click', function() {
+                const scanEffect = document.createElement('div');
+                scanEffect.className = 'scan-effect';
+                document.body.appendChild(scanEffect);
+                
+                // Add log entry
+                addLogEntry('[SCAN] Initiating network scan on interface ' + document.getElementById('interface').value);
+                
+                setTimeout(() => {
+                    document.body.removeChild(scanEffect);
+                    
+                    // Simulate finding devices
+                    document.getElementById('scan-results').innerHTML = `
+                        <div class="device">
+                            <div class="ip-address">192.168.1.1</div>
+                            <div class="mac-address">AA:BB:CC:DD:EE:FF</div>
+                            <div class="credentials">Router - No open camera ports</div>
+                        </div>
+                        <div class="device">
+                            <div class="ip-address">192.168.1.105</div>
+                            <div class="mac-address">11:22:33:44:55:66</div>
+                            <div class="credentials">ONVIF: admin/password</div>
+                        </div>
+                        <div class="device">
+                            <div class="ip-address">192.168.1.110</div>
+                            <div class="mac-address">FE:DC:BA:98:76:54</div>
+                            <div class="credentials">HTTP: admin/admin</div>
+                        </div>
+                    `;
+                    
+                    addLogEntry('[SCAN] Found 3 devices on the network');
+                    addLogEntry('[SCAN] 2 devices appear to be cameras');
+                }, 2000);
+            });
+            
+            // Test credentials button
+            document.getElementById('test-btn').addEventListener('click', function() {
+                const ip = document.getElementById('target-ip').value;
+                const protocol = document.getElementById('protocol').value;
+                
+                if (!ip) {
+                    addLogEntry('[ERROR] Please enter a target IP address');
+                    return;
+                }
+                
+                addLogEntry('[TEST] Testing ' + protocol + ' credentials on ' + ip);
+                
+                // Simulate testing
+                setTimeout(() => {
+                    document.getElementById('test-results').innerHTML = `
+                        <div class="credentials">Testing common credentials on ${ip}</div>
+                        <div class="credentials">admin/admin - FAILED</div>
+                        <div class="credentials">admin/password - SUCCESS</div>
+                        <div class="credentials">user/user - FAILED</div>
+                        <div class="credentials">guest/guest - FAILED</div>
+                    `;
+                    
+                    addLogEntry('[TEST] Found valid credentials: admin/password');
+                }, 1500);
+            });
+            
+            // Exploit button
+            document.getElementById('exploit-btn').addEventListener('click', function() {
+                const ip = document.getElementById('exploit-ip').value;
+                const exploitType = document.getElementById('exploit-type').value;
+                
+                if (!ip) {
+                    addLogEntry('[ERROR] Please enter a target IP address');
+                    return;
+                }
+                
+                addLogEntry('[EXPLOIT] Executing ${exploitType} on ' + ip);
+                
+                // Simulate exploit
+                setTimeout(() => {
+                    document.getElementById('exploit-results').innerHTML = `
+                        <div class="credentials">Exploit executed successfully</div>
+                        <div class="credentials">Gained access to camera stream</div>
+                        <div class="credentials">Downloading video feed...</div>
+                    `;
+                    
+                    addLogEntry('[EXPLOIT] Successfully compromised ' + ip);
+                }, 2000);
+            });
+            
+            // Traffic visualization button
+            document.getElementById('traffic-btn').addEventListener('click', function() {
+                addLogEntry('[VISUAL] Activating network traffic simulation');
+            });
+            
+            // Function to add log entries
+            function addLogEntry(message) {
+                const log = document.getElementById('system-log');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            // Simple 3D visualization with Three.js
+            const globeContainer = document.getElementById('globe-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, globeContainer.offsetWidth / globeContainer.offsetHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(globeContainer.offsetWidth, globeContainer.offsetHeight);
+            globeContainer.appendChild(renderer.domElement);
+            
+            // Create a globe with neon grid
+            const geometry = new THREE.SphereGeometry(5, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x0ff0fc, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.7 
+            });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            
+            // Add points around the sphere
+            const points = [];
+            for (let i = 0; i < 100; i++) {
+                const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const starMaterial = new THREE.MeshBasicMaterial({ 
+                    color: Math.random() > 0.5 ? 0xff2d95 : 0x00ff66,
+                    emissive: Math.random() > 0.5 ? 0xff2d95 : 0x00ff66,
+                    emissiveIntensity: 0.5
+                });
+                const star = new THREE.Mesh(starGeometry, starMaterial);
+                
+                // Position randomly around the sphere
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                const distance = 5.5;
+                
+                star.position.x = distance * Math.sin(phi) * Math.cos(theta);
+                star.position.y = distance * Math.sin(phi) * Math.sin(theta);
+                star.position.z = distance * Math.cos(phi);
+                
+                scene.add(star);
+                points.push(star);
+            }
+            
+            camera.position.z = 15;
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                sphere.rotation.x += 0.001;
+                sphere.rotation.y += 0.002;
+                
+                // Animate points
+                points.forEach(point => {
+                    point.rotation.x += 0.001;
+                    point.rotation.y += 0.002;
+                });
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize for Three.js
+            window.addEventListener('resize', function() {
+                camera.aspect = globeContainer.offsetWidth / globeContainer.offsetHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(globeContainer.offsetWidth, globeContainer.offsetHeight);
+            });
+        });
+    </script>
+</body>
+</html>
