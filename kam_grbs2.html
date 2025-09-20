@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeonHack // Advanced Camera Infiltration Suite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --neon-pink: #ff2d95;
+            --neon-blue: #0ff0fc;
+            --neon-green: #00ff66;
+            --neon-purple: #8a2be2;
+            --neon-orange: #ff7700;
+            --dark-bg: #0a0a12;
+            --darker-bg: #050509;
+            --panel-bg: rgba(15, 15, 25, 0.7);
+            --panel-border: rgba(0, 240, 252, 0.4);
+            --glow-intensity: 15px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 45, 149, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 60%, rgba(0, 240, 252, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 50% 80%, rgba(0, 255, 102, 0.1) 0%, transparent 20%);
+        }
+        
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+        
+        .grid-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.15;
+            background-image: 
+                linear-gradient(rgba(0, 240, 252, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 252, 0.3) 1px, transparent 1px);
+            background-size: 30px 30px;
+            transform: perspective(500px) rotateX(60deg);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            z-index: 1;
+            position: relative;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            border-bottom: 1px solid var(--neon-pink);
+            box-shadow: 0 5px 25px rgba(255, 45, 149, 0.3);
+            animation: pulse 2s infinite;
+            background: rgba(10, 10, 18, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: headerScan 4s linear infinite;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 15px;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink), 0 0 30px var(--neon-pink);
+            position: relative;
+        }
+        
+        .subtitle {
+            color: var(--neon-blue);
+            font-size: 1.4rem;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(0, 240, 252, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            transition: all 0.3s ease;
+        }
+        
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink), var(--neon-green));
+            z-index: 2;
+        }
+        
+        .panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            pointer-events: none;
+        }
+        
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 35px rgba(0, 240, 252, 0.5);
+        }
+        
+        .panel-header {
+            color: var(--neon-blue);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-shadow: 0 0 8px var(--neon-blue);
+        }
+        
+        .panel-title {
+            font-size: 1.6rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .panel-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+        
+        .panel:hover .panel-title::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+        
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            position: relative;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: rgba(5, 5, 9, 0.7);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+        
+        input:hover, select:hover {
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.5);
+        }
+        
+        button {
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            border: none;
+            color: white;
+            padding: 14px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(255, 45, 149, 0.4);
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        button:hover {
+            box-shadow: 0 0 25px var(--neon-pink);
+            transform: translateY(-3px);
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .results {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: rgba(5, 5, 9, 0.6);
+            border-radius: 4px;
+            border: 1px solid var(--neon-green);
+            box-shadow: inset 0 0 15px rgba(0, 255, 102, 0.2);
+        }
+        
+        .device {
+            padding: 12px;
+            margin-bottom: 12px;
+            background-color: rgba(0, 255, 102, 0.1);
+            border-left: 3px solid var(--neon-green);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .device::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--neon-green);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .device:hover {
+            transform: translateX(5px);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+        }
+        
+        .device:hover::before {
+            opacity: 1;
+        }
+        
+        .ip-address {
+            font-weight: bold;
+            color: var(--neon-blue);
+            text-shadow: 0 0 5px var(--neon-blue);
+        }
+        
+        .mac-address {
+            color: var(--neon-pink);
+            text-shadow: 0 0 5px var(--neon-pink);
+            font-size: 0.9rem;
+        }
+        
+        .credentials {
+            color: var(--neon-green);
+            margin-top: 8px;
+            font-size: 0.9rem;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        
+        .holographic-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .holographic-line::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            filter: blur(3px);
+        }
+        
+        .cyberpunk-globe {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+            position: relative;
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(0, 240, 252, 0.5);
+            overflow: hidden;
+        }
+        
+        .log-container {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        
+        .log {
+            height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: var(--neon-green);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border: 1px solid var(--neon-green);
+            border-radius: 4px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 20px rgba(0, 255, 102, 0.1);
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            animation: fadeIn 0.5s ease;
+            padding-left: 10px;
+            border-left: 2px solid var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        
+        .terminal-prompt {
+            color: var(--neon-blue);
+            margin-right: 5px;
+        }
+        
+        .data-stream {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+            background: linear-gradient(transparent 0%, rgba(0, 255, 102, 0.1) 50%, transparent 100%);
+            background-size: 100% 10px;
+            animation: dataStream 10s linear infinite;
+        }
+        
+        .interactive-hologram {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            right: -100px;
+            bottom: -100px;
+            z-index: -1;
+            opacity: 0.2;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--neon-blue) 0%, transparent 70%);
+            filter: blur(20px);
+            animation: rotateHologram 20s linear infinite;
+        }
+        
+        .corner-decoration {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+        }
+        
+        .corner-tl {
+            top: 10px;
+            left: 10px;
+            border-top: 2px solid var(--neon-blue);
+            border-left: 2px solid var(--neon-blue);
+        }
+        
+        .corner-tr {
+            top: 10px;
+            right: 10px;
+            border-top: 2px solid var(--neon-blue);
+            border-right: 2px solid var(--neon-blue);
+        }
+        
+        .corner-bl {
+            bottom: 10px;
+            left: 10px;
+            border-bottom: 2px solid var(--neon-blue);
+            border-left: 2px solid var(--neon-blue);
+        }
+        
+        .corner-br {
+            bottom: 10px;
+            right: 10px;
+            border-bottom: 2px solid var(--neon-blue);
+            border-right: 2px solid var(--neon-blue);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(1000%); }
+        }
+        
+        @keyframes headerScan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes dataStream {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 1000px; }
+        }
+        
+        @keyframes rotateHologram {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .scan-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(0, 255, 102, 0.5), transparent);
+            animation: scan 2s linear;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .cyber-glitch {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 45, 149, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            z-index: 100;
+        }
+        
+        .hologram-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        
+        .control-knob {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 240, 252, 0.1);
+            border: 2px solid var(--neon-blue);
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 240, 252, 0.3);
+        }
+        
+        .control-knob::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+        
+        .control-knob:hover {
+            box-shadow: 0 0 25px var(--neon-blue);
+        }
+        
+        .hologram-bars {
+            display: flex;
+            justify-content: space-between;
+            height: 100px;
+            margin-top: 20px;
+        }
+        
+        .bar {
+            width: 8px;
+            background: var(--neon-blue);
+            border-radius: 2px;
+            height: 0%;
+            box-shadow: 0 0 10px var(--neon-blue);
+            animation: barAnimation 2s infinite alternate;
+            animation-delay: calc(var(--delay) * 0.2s);
+        }
+        
+        @keyframes barAnimation {
+            0% { height: 30%; }
+            100% { height: 100%; }
+        }
+        
+        @media (max-width: 1100px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .cyberpunk-globe {
+                width: 200px;
+                height: 200px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .panel {
+                padding: 15px;
+            }
+            
+            .cyberpunk-globe {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="particle-canvas"></div>
+    <div class="grid-lines"></div>
+    <div class="data-stream"></div>
+    <div class="interactive-hologram"></div>
+    
+    <div class="container">
+        <header>
+            <h1>NeonHack // Camera Infiltration</h1>
+            <div class="subtitle">ADVANCED CYBERPUNK SECURITY PENETRATION SUITE v3.0.1</div>
+            <div class="corner-decoration corner-tl"></div>
+            <div class="corner-decoration corner-tr"></div>
+            <div class="corner-decoration corner-bl"></div>
+            <div class="corner-decoration corner-br"></div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="panel">
+                <div class="corner-decoration corner-tl"></div>
+                <div class="corner-decoration corner-tr"></div>
+                <div class="corner-decoration corner-bl"></div>
+                <div class="corner-decoration corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-title">NETWORK SCANNER</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="interface">NETWORK INTERFACE</label>
+                    <select id="interface">
+                        <option value="eth0">eth0</option>
+                        <option value="wlan0">wlan0</option>
+                        <option value="en0">en0 (macOS)</option>
+                        <option value="en1">en1 (macOS)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="ip-range">IP RANGE</label>
+                    <input type="text" id="ip-range" value="192.168.1.0/24">
+                </div>
+                
+                <button id="scan-btn">INITIATE NETWORK SCAN</button>
+                
+                <div class="hologram-bars">
+                    <div class="bar" style="--delay: 0"></div>
+                    <div class="bar" style="--delay: 1"></div>
+                    <div class="bar" style="--delay: 2"></div>
+                    <div class="bar" style="--delay: 3"></div>
+                    <div class="bar" style="--delay: 4"></div>
+                    <div class="bar" style="--delay: 5"></div>
+                    <div class="bar" style="--delay: 6"></div>
+                    <div class="bar" style="--delay: 7"></div>
+                </div>
+                
+                <div class="results" id="scan-results">
+                    <div class="device">
+                        <div class="ip-address">192.168.1.1</div>
+                        <div class="mac-address">AA:BB:CC:DD:EE:FF</div>
+                        <div class="credentials">HTTP: admin/admin | Open Ports: 80, 443</div>
+                    </div>
+                    <div class="device">
+                        <div class="ip-address">192.168.1.105</div>
+                        <div class="mac-address">11:22:33:44:55:66</div>
+                        <div class="credentials">ONVIF: admin/password | Open Ports: 80, 554, 2020</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="corner-decoration corner-tl"></div>
+                <div class="corner-decoration corner-tr"></div>
+                <div class="corner-decoration corner-bl"></div>
+                <div class="corner-decoration corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-title">CREDENTIAL TESTING</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="target-ip">TARGET IP ADDRESS</label>
+                    <input type="text" id="target-ip" placeholder="192.168.1.100">
+                </div>
+                
+                <div class="input-group">
+                    <label for="protocol">PROTOCOL</label>
+                    <select id="protocol">
+                        <option value="http">HTTP Basic Auth</option>
+                        <option value="onvif">ONVIF</option>
+                        <option value="rtsp">RTSP</option>
+                        <option value="ssh">SSH</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="custom-wordlist">CUSTOM WORDLIST</label>
+                    <input type="file" id="custom-wordlist">
+                </div>
+                
+                <button id="test-btn">TEST CREDENTIALS</button>
+                
+                <div class="results" id="test-results">
+                    <div class="credentials">Select target and protocol to begin testing</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="corner-decoration corner-tl"></div>
+                <div class="corner-decoration corner-tr"></div>
+                <div class="corner-decoration corner-bl"></div>
+                <div class="corner-decoration corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-title">CAMERA EXPLOITATION</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="exploit-ip">TARGET IP</label>
+                    <input type="text" id="exploit-ip" placeholder="192.168.1.100">
+                </div>
+                
+                <div class="input-group">
+                    <label for="exploit-type">EXPLOIT TYPE</label>
+                    <select id="exploit-type">
+                        <option value="stream">Stream Capture</option>
+                        <option value="credentials">Credential Harvesting</option>
+                        <option value="persistence">Persistence Installation</option>
+                        <option value="firmware">Firmware Exploit</option>
+                    </select>
+                </div>
+                
+                <div class="hologram-controls">
+                    <div class="control-knob" id="control-1"></div>
+                    <div class="control-knob" id="control-2"></div>
+                    <div class="control-knob" id="control-3"></div>
+                </div>
+                
+                <button id="exploit-btn">EXECUTE EXPLOIT</button>
+                
+                <div class="results" id="exploit-results">
+                    <div class="credentials">Select a target and exploit type</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="corner-decoration corner-tl"></div>
+                <div class="corner-decoration corner-tr"></div>
+                <div class="corner-decoration corner-bl"></div>
+                <div class="corner-decoration corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-title">HOLOGRAPHIC VISUALIZER</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="cyberpunk-globe" id="globe-container">
+                    <!-- 3D globe will be rendered here -->
+                </div>
+                
+                <div class="holographic-line"></div>
+                
+                <div class="input-group">
+                    <label>NETWORK TRAFFIC SIMULATION</label>
+                    <button id="traffic-btn">ACTIVATE VISUALIZATION</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>DATA PATTERN ANALYSIS</label>
+                    <button id="pattern-btn">RUN ANALYSIS</button>
+                </div>
+            </div>
+            
+            <div class="log-container panel">
+                <div class="corner-decoration corner-tl"></div>
+                <div class="corner-decoration corner-tr"></div>
+                <div class="corner-decoration corner-bl"></div>
+                <div class="corner-decoration corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-title">SYSTEM LOG</div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="log" id="system-log">
+                    <div class="log-entry"><span class="terminal-prompt">>></span> [INFO] System initialized at 20:47:36</div>
+                    <div class="log-entry"><span class="terminal-prompt">>></span> [INFO] Network interfaces detected</div>
+                    <div class="log-entry"><span class="terminal-prompt">>></span> [STATUS] Ready to scan</div>
+                </div>
+                
+                <div class="holographic-line"></div>
+                
+                <div class="input-group">
+                    <button id="clear-log-btn">CLEAR LOG</button>
+                    <button id="export-log-btn">EXPORT LOG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Particle background animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            let particles = [];
+            const colors = ['#ff2d95', '#0ff0fc', '#00ff66', '#8a2be2', '#ff7700'];
+            
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 0.5;
+                    this.speedX = Math.random() * 2 - 1;
+                    this.speedY = Math.random() * 2 - 1;
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.alpha = Math.random() * 0.5 + 0.3;
+                }
+                
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    
+                    if (this.x > canvas.width || this.x < 0) {
+                        this.speedX = -this.speedX;
+                    }
+                    if (this.y > canvas.height || this.y < 0) {
+                        this.speedY = -this.speedY;
+                    }
+                }
+                
+                draw() {
+                    ctx.globalAlpha = this.alpha;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Create glowing effect
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = this.color;
+                }
+            }
+            
+            function createParticles() {
+                for (let i = 0; i < 150; i++) {
+                    particles.push(new Particle());
+                }
+            }
+            
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                    
+                    // Draw connections between particles
+                    for (let j = i; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 120) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = particles[i].color;
+                            ctx.lineWidth = 0.3;
+                            ctx.globalAlpha = 0.8 - distance/120;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                            ctx.closePath();
+                        }
+                    }
+                }
+                
+                requestAnimationFrame(animateParticles);
+            }
+            
+            createParticles();
+            animateParticles();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+            
+            // Add cyber glitch effect randomly
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const glitch = document.createElement('div');
+                    glitch.className = 'cyber-glitch';
+                    document.body.appendChild(glitch);
+                    
+                    setTimeout(() => {
+                        glitch.style.opacity = '0.7';
+                    }, 10);
+                    
+                    setTimeout(() => {
+                        glitch.style.opacity = '0';
+                        setTimeout(() => {
+                            document.body.removeChild(glitch);
+                        }, 1000);
+                    }, 100);
+                }
+            }, 5000);
+            
+            // Add scan effect animation
+            document.getElementById('scan-btn').addEventListener('click', function() {
+                const scanEffect = document.createElement('div');
+                scanEffect.className = 'scan-effect';
+                document.body.appendChild(scanEffect);
+                
+                // Add log entry
+                addLogEntry('[SCAN] Initiating network scan on interface ' + document.getElementById('interface').value);
+                addLogEntry('[SCAN] Scanning IP range: ' + document.getElementById('ip-range').value);
+                
+                setTimeout(() => {
+                    document.body.removeChild(scanEffect);
+                    
+                    // Simulate finding devices
+                    document.getElementById('scan-results').innerHTML = `
+                        <div class="device">
+                            <div class="ip-address">192.168.1.1</div>
+                            <div class="mac-address">AA:BB:CC:DD:EE:FF</div>
+                            <div class="credentials">Router - No open camera ports | Open Ports: 22, 80, 443</div>
+                        </div>
+                        <div class="device">
+                            <div class="ip-address">192.168.1.105</div>
+                            <div class="mac-address">11:22:33:44:55:66</div>
+                            <div class="credentials">ONVIF: admin/password | Open Ports: 80, 554, 2020</div>
+                        </div>
+                        <div class="device">
+                            <div class="ip-address">192.168.1.110</div>
+                            <div class="mac-address">FE:DC:BA:98:76:54</div>
+                            <div class="credentials">HTTP: admin/admin | Open Ports: 80, 8080</div>
+                        </div>
+                    `;
+                    
+                    addLogEntry('[SCAN] Found 3 devices on the network');
+                    addLogEntry('[SCAN] 2 devices appear to be cameras');
+                }, 2000);
+            });
+            
+            // Test credentials button
+            document.getElementById('test-btn').addEventListener('click', function() {
+                const ip = document.getElementById('target-ip').value;
+                const protocol = document.getElementById('protocol').value;
+                
+                if (!ip) {
+                    addLogEntry('[ERROR] Please enter a target IP address');
+                    return;
+                }
+                
+                addLogEntry('[TEST] Testing ' + protocol + ' credentials on ' + ip);
+                
+                // Simulate testing
+                setTimeout(() => {
+                    document.getElementById('test-results').innerHTML = `
+                        <div class="credentials">Testing common credentials on ${ip}</div>
+                        <div class="credentials">admin/admin - FAILED</div>
+                        <div class="credentials">admin/password - SUCCESS</div>
+                        <div class="credentials">user/user - FAILED</div>
+                        <div class="credentials">guest/guest - FAILED</div>
+                        <div class="credentials">root/12345 - FAILED</div>
+                        <div class="credentials">admin/123456 - FAILED</div>
+                    `;
+                    
+                    addLogEntry('[TEST] Found valid credentials: admin/password');
+                }, 1500);
+            });
+            
+            // Exploit button
+            document.getElementById('exploit-btn').addEventListener('click', function() {
+                const ip = document.getElementById('exploit-ip').value;
+                const exploitType = document.getElementById('exploit-type').value;
+                
+                if (!ip) {
+                    addLogEntry('[ERROR] Please enter a target IP address');
+                    return;
+                }
+                
+                addLogEntry('[EXPLOIT] Executing ${exploitType} on ' + ip);
+                
+                // Simulate exploit
+                setTimeout(() => {
+                    document.getElementById('exploit-results').innerHTML = `
+                        <div class="credentials">Exploit executed successfully</div>
+                        <div class="credentials">Gained access to camera stream</div>
+                        <div class="credentials">Downloading video feed...</div>
+                        <div class="credentials">Extracted 3 user accounts</div>
+                    `;
+                    
+                    addLogEntry('[EXPLOIT] Successfully compromised ' + ip);
+                }, 2000);
+            });
+            
+            // Traffic visualization button
+            document.getElementById('traffic-btn').addEventListener('click', function() {
+                addLogEntry('[VISUAL] Activating network traffic simulation');
+                
+                // Enhance the particle animation to simulate traffic
+                particles.forEach(p => {
+                    p.speedX = Math.random() * 4 - 2;
+                    p.speedY = Math.random() * 4 - 2;
+                });
+                
+                setTimeout(() => {
+                    particles.forEach(p => {
+                        p.speedX = Math.random() * 2 - 1;
+                        p.speedY = Math.random() * 2 - 1;
+                    });
+                }, 5000);
+            });
+            
+            // Pattern analysis button
+            document.getElementById('pattern-btn').addEventListener('click', function() {
+                addLogEntry('[ANALYSIS] Running data pattern analysis');
+                
+                // Create a visual effect for pattern analysis
+                const bars = document.querySelectorAll('.bar');
+                bars.forEach(bar => {
+                    bar.style.animation = 'barAnimation 0.5s infinite alternate';
+                });
+                
+                setTimeout(() => {
+                    bars.forEach(bar => {
+                        bar.style.animation = 'barAnimation 2s infinite alternate';
+                    });
+                    addLogEntry('[ANALYSIS] Pattern analysis complete - 3 anomalies detected');
+                }, 3000);
+            });
+            
+            // Clear log button
+            document.getElementById('clear-log-btn').addEventListener('click', function() {
+                document.getElementById('system-log').innerHTML = '';
+                addLogEntry('[SYSTEM] Log cleared');
+            });
+            
+            // Export log button
+            document.getElementById('export-log-btn').addEventListener('click', function() {
+                addLogEntry('[SYSTEM] Exporting log data...');
+                
+                setTimeout(() => {
+                    addLogEntry('[SYSTEM] Log exported successfully');
+                }, 1000);
+            });
+            
+            // Function to add log entries
+            function addLogEntry(message) {
+                const log = document.getElementById('system-log');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = '<span class="terminal-prompt">>></span> ' + message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            // Enhanced 3D visualization with Three.js
+            const globeContainer = document.getElementById('globe-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, globeContainer.offsetWidth / globeContainer.offsetHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(globeContainer.offsetWidth, globeContainer.offsetHeight);
+            renderer.setClearColor(0x000000, 0);
+            globeContainer.appendChild(renderer.domElement);
+            
+            // Create a globe with neon grid
+            const geometry = new THREE.SphereGeometry(5, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x0ff0fc, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.7 
+            });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            
+            // Add inner grid
+            const innerGeometry = new THREE.SphereGeometry(4, 24, 24);
+            const innerMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff2d95, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.5 
+            });
+            const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
+            scene.add(innerSphere);
+            
+            // Add points around the sphere
+            const points = [];
+            const pointCount = 200;
+            
+            for (let i = 0; i < pointCount; i++) {
+                const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const starMaterial = new THREE.MeshBasicMaterial({ 
+                    color: Math.random() > 0.5 ? 0xff2d95 : 0x00ff66,
+                    emissive: Math.random() > 0.5 ? 0xff2d95 : 0x00ff66,
+                    emissiveIntensity: 0.8
+                });
+                const star = new THREE.Mesh(starGeometry, starMaterial);
+                
+                // Position randomly around the sphere
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                const distance = 5.5 + Math.random() * 2;
+                
+                star.position.x = distance * Math.sin(phi) * Math.cos(theta);
+                star.position.y = distance * Math.sin(phi) * Math.sin(theta);
+                star.position.z = distance * Math.cos(phi);
+                
+                scene.add(star);
+                points.push({
+                    mesh: star,
+                    speed: Math.random() * 0.01 + 0.005,
+                    radius: distance,
+                    theta: theta,
+                    phi: phi
+                });
+            }
+            
+            // Add connecting lines
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x0ff0fc, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            
+            const lines = [];
+            for (let i = 0; i < 50; i++) {
+                const points1 = points[Math.floor(Math.random() * points.length)];
+                const points2 = points[Math.floor(Math.random() * points.length)];
+                
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(points1.mesh.position.x, points1.mesh.position.y, points1.mesh.position.z),
+                    new THREE.Vector3(points2.mesh.position.x, points2.mesh.position.y, points2.mesh.position.z)
+                ]);
+                
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                scene.add(line);
+                lines.push({
+                    mesh: line,
+                    points: [points1, points2],
+                    lifespan: Math.random() * 200 + 100,
+                    age: 0
+                });
+            }
+            
+            camera.position.z = 15;
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                sphere.rotation.x += 0.001;
+                sphere.rotation.y += 0.002;
+                
+                innerSphere.rotation.x -= 0.0005;
+                innerSphere.rotation.y -= 0.001;
+                
+                // Animate points
+                points.forEach(point => {
+                    point.theta += point.speed;
+                    point.mesh.position.x = point.radius * Math.sin(point.phi) * Math.cos(point.theta);
+                    point.mesh.position.y = point.radius * Math.sin(point.phi) * Math.sin(point.theta);
+                    point.mesh.position.z = point.radius * Math.cos(point.phi);
+                });
+                
+                // Update lines
+                lines.forEach(line => {
+                    line.age++;
+                    if (line.age > line.lifespan) {
+                        line.age = 0;
+                        
+                        // Update line positions
+                        const geometry = line.mesh.geometry;
+                        const positions = geometry.attributes.position;
+                        
+                        positions.array[0] = line.points[0].mesh.position.x;
+                        positions.array[1] = line.points[0].mesh.position.y;
+                        positions.array[2] = line.points[0].mesh.position.z;
+                        
+                        positions.array[3] = line.points[1].mesh.position.x;
+                        positions.array[4] = line.points[1].mesh.position.y;
+                        positions.array[5] = line.points[1].mesh.position.z;
+                        
+                        positions.needsUpdate = true;
+                    }
+                    
+                    // Fade in and out
+                    const opacity = Math.sin((line.age / line.lifespan) * Math.PI) * 0.3;
+                    line.mesh.material.opacity = opacity;
+                });
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize for Three.js
+            window.addEventListener('resize', function() {
+                camera.aspect = globeContainer.offsetWidth / globeContainer.offsetHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(globeContainer.offsetWidth, globeContainer.offsetHeight);
+            });
+            
+            // Make control knobs interactive
+            const controlKnobs = document.querySelectorAll('.control-knob');
+            controlKnobs.forEach((knob, index) => {
+                let isDragging = false;
+                let startAngle = 0;
+                let rotation = 0;
+                
+                knob.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+                    const rect = knob.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+                });
+                
+                document.addEventListener('mousemove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const rect = knob.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+                    
+                    rotation += angle - startAngle;
+                    knob.style.transform = `rotate(${rotation}deg)`;
+                    startAngle = angle;
+                    
+                    addLogEntry(`[CONTROL] Adjusting parameter ${index + 1}: ${Math.round(rotation)}°`);
+                });
+                
+                document.addEventListener('mouseup', function() {
+                    isDragging = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
