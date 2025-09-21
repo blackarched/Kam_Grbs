@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEONHACK // v5.0 — Control Panel</title>
+
+<style>
+  :root{
+    --bg:#08060a;
+    --panel:#0f0f12;
+    --neon-cyan:#00f1ff;
+    --neon-pink:#ff39b0;
+    --accent:#00ffad;
+    --muted:#9aa0a6;
+    --glass: rgba(255,255,255,0.03);
+    --card-radius:18px;
+  }
+  html,body{height:100%;margin:0;background:
+    radial-gradient(ellipse at 20% 10%, rgba(0,0,0,0.75), transparent 10%),
+    linear-gradient(180deg, #0a0810 0%, #060305 40%, #050203 100%);
+    font-family: "Courier New", Courier, monospace; color:#e9eef6;}
+  header.appheader{
+    text-align:center;padding:28px 12px 16px 12px;
+    background: linear-gradient(90deg,var(--neon-pink), #7a2bff);
+    color:white; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    border-bottom: 4px solid rgba(255,255,255,0.03);
+  }
+  header.appheader h1{
+    margin:0;font-size:36px;letter-spacing:6px;
+    text-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 18px rgba(255,0,160,0.25);
+  }
+  .subtitle{
+    margin-top:6px;font-size:12px; color:rgba(255,255,255,0.85);
+    letter-spacing:4px;
+  }
+
+  main.container{
+    width:100%; max-width:980px; margin:18px auto 120px auto; padding:0 14px;
+    box-sizing:border-box;
+  }
+
+  /* big hero card (top title art like screenshot) */
+  .hero{
+    background: linear-gradient(180deg, rgba(255,0,150,0.04), rgba(0,0,0,0.35));
+    border-radius:22px; padding:36px; margin-bottom:18px;
+    border:1px solid rgba(0,255,210,0.06);
+    box-shadow: 0 30px 80px rgba(120,0,140,0.12), inset 0 0 40px rgba(255,0,160,0.02);
+  }
+  .hero .bigtitle{
+    color:var(--neon-pink); font-size:28px; letter-spacing:8px;
+    text-align:center; text-shadow: 0 0 18px rgba(255,0,160,0.25);
+    margin: 6px 0 0 0;
+  }
+  .hero .small{
+    text-align:center; color:var(--neon-cyan); letter-spacing:4px; margin-top:10px;
+    font-size:12px;
+  }
+
+  /* panels card layout */
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25));
+    border-radius: var(--card-radius);
+    padding:18px;
+    margin: 14px 0;
+    border: 1px solid rgba(120,80,200,0.12);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,255,210,0.02) inset;
+  }
+  .card-title{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;
+    font-size:20px;color:var(--neon-pink); letter-spacing:4px;
+    text-shadow: 0 0 10px rgba(255,50,140,0.08);
+  }
+  .card .label{
+    display:block;color:var(--accent);font-size:12px;letter-spacing:2px;margin-top:6px;
+  }
+
+  /* inputs look */
+  .input, textarea, select {
+    width:100%; box-sizing:border-box;
+    background: rgba(8,6,10,0.6); border-radius:10px;
+    border: 2px solid rgba(120,60,200,0.2); color:#ccf7ff;
+    padding:12px 14px; font-family: "Courier New", monospace; font-size:16px;
+    outline:none; transition: box-shadow .18s, border-color .18s;
+  }
+  .input:focus, textarea:focus, select:focus {
+    box-shadow: 0 0 18px rgba(0,240,255,0.08);
+    border-color: rgba(0,255,210,0.45);
+  }
+  textarea {min-height:90px; resize:vertical;}
+
+  /* neon button */
+  .btn{
+    display:inline-block; padding:14px 18px; width:100%;
+    border-radius:12px; border:none; cursor:pointer;
+    background: linear-gradient(90deg,var(--neon-pink), #7a2bff);
+    color: white; font-weight:700; letter-spacing:3px; margin-top:14px;
+    font-size:14px; box-shadow: 0 6px 30px rgba(255,0,150,0.12);
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn[disabled]{ opacity:0.6; pointer-events:none; }
+
+  /* log console */
+  #log{
+    background: linear-gradient(180deg, rgba(0,0,0,0.7), rgba(2,2,4,0.86));
+    border-radius:12px; padding:12px; height:220px; overflow:auto;
+    border:1px solid rgba(0,255,220,0.04); box-shadow: 0 12px 40px rgba(0,0,0,0.6) inset;
+    font-family: monospace; font-size:13px; color:#a7f6ff;
+  }
+
+  /* two column on larger screens */
+  @media(min-width:860px){
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
+  }
+
+  /* stylized separators / decorative neon bars similar to screenshot bottom bars */
+  .neon-bars{ display:flex; gap:10px; justify-content:center; margin-top:6px; padding:8px 0;}
+  .neon-bar{
+    width:14px; height:80px; border-radius:8px; background: linear-gradient(180deg, rgba(0,240,255,0.95), rgba(0,160,240,0.1));
+    box-shadow: 0 0 18px rgba(0,240,255,0.12), 0 10px 26px rgba(0,160,210,0.06);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  .neon-bar:nth-child(2n){ animation-delay:0.12s; }
+  .neon-bar:nth-child(3n){ animation-delay:0.24s; }
+  @keyframes pulse{
+    0%{ transform: translateY(6px); opacity:0.7 }
+    50%{ transform: translateY(0px); opacity:1 }
+    100%{ transform: translateY(6px); opacity:0.7 }
+  }
+
+  /* small helper */
+  .muted{ color:var(--muted); font-size:13px; margin-top:6px;}
+  .row{ margin-bottom:6px;}
+  .card small.hint{ color:#9feadf; opacity:0.9; display:block; margin-top:6px; font-size:12px;}
+</style>
+</head>
+<body>
+  <header class="appheader" role="banner">
+    <h1>NEONHACK // HARDENED v5.0</h1>
+    <div class="subtitle">ADVANCED CYBERPUNK SECURITY PENETRATION SUITE</div>
+  </header>
+
+  <main class="container" role="main">
+    <section class="card" aria-labelledby="auth-title">
+        <div id="auth-title" class="card-title">🔑 AUTHORIZATION</div>
+        <label class="label">API KEY</label>
+        <input id="api-key" type="password" class="input" placeholder="Enter your secret API key" />
+        <small class="hint">All actions require a valid API key configured on the server.</small>
+    </section>
+    
+    <section class="card" aria-labelledby="net-title">
+      <div id="net-title" class="card-title">◈ NETWORK SCANNER</div>
+      <div class="row">
+        <label class="label">NETWORK INTERFACE</label>
+        <select id="iface" class="input"><option value="eth0">eth0</option><option value="wlan0">wlan0</option></select>
+      </div>
+      <div class="row">
+        <label class="label">IP RANGE (CIDR)</label>
+        <input id="cidr" class="input" placeholder="192.168.1.0/24" value="192.168.1.0/24" />
+      </div>
+      <button class="btn" id="btn-arp" onclick="runArp()">INITIATE NETWORK SCAN</button>
+    </section>
+
+    <div class="grid2">
+      <section class="card" aria-labelledby="cred-title">
+        <div id="cred-title" class="card-title">🛡 PORT CONNECTIVITY</div>
+        <label class="label">TARGET IP</label>
+        <input id="cred-ip" class="input" placeholder="192.168.1.10" />
+        <label class="label">PROTOCOL</label>
+        <select id="cred-proto" class="input"><option value="ssh">SSH</option><option value="ftp">FTP</option><option value="http">HTTP</option></select>
+        <button class="btn" onclick="testCred()">RUN CONNECTIVITY TEST</button>
+        <small class="hint">Performs a simple TCP connection test to the default port.</small>
+      </section>
+
+      <section class="card" aria-labelledby="hydra-title">
+        <div id="hydra-title" class="card-title">⚔️ HYDRA ATTACK</div>
+        <label class="label">TARGET IP</label>
+        <input id="hydra-ip" class="input" placeholder="192.168.1.20" />
+        <label class="label">PROTOCOL</label>
+        <select id="hydra-proto" class="input"><option value="ssh">SSH</option><option value="ftp">FTP</option><option value="http-get">HTTP-GET</option></select>
+        <label class="label">USERNAMES (one per line)</label>
+        <textarea id="hydra-users" class="input" placeholder="root\nadmin\nuser"></textarea>
+        <label class="label">PASSWORDS (one per line)</label>
+        <textarea id="hydra-pass" class="input" placeholder="password\n123456"></textarea>
+        <button class="btn" onclick="startHydra()" id="hydra-btn">BEGIN HYDRA ATTACK</button>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="exp-title">
+      <div id="exp-title" class="card-title">💣 EXPLOIT EXECUTION</div>
+      <label class="label">TARGET IP</label>
+      <input id="exp-ip" class="input" placeholder="192.168.1.30" />
+      <label class="label">MODULE (whitelisted on server)</label>
+      <select id="exp-mod" class="input">
+        <option value="exploit/unix/ftp/vsftpd_234_backdoor">exploit/unix/ftp/vsftpd_234_backdoor</option>
+        <option value="auxiliary/scanner/portscan/tcp">auxiliary/scanner/portscan/tcp</option>
+      </select>
+      <button class="btn" onclick="runExploit()">EXECUTE MODULE</button>
+      <small class="hint">Server holds MSF password. Only whitelisted modules can be run.</small>
+    </section>
+
+    <section class="card" aria-label="log console">
+      <div class="card-title">⌘ OP CONSOLE</div>
+      <div id="log" role="log" aria-live="polite"></div>
+    </section>
+  </main>
+
+<script>
+const logEl = document.getElementById('log');
+
+function getApiKey() {
+    return document.getElementById('api-key').value;
+}
+
+function appendLog(s) {
+  const t = new Date().toLocaleTimeString();
+  const div = document.createElement('div');
+  div.innerHTML = `[${t}] ${s}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function wl_summary(text) {
+  if (!text) return '(none)';
+  return `${text.split(/\r?\n/).filter(Boolean).length} entries`;
+}
+
+async function handleApiResponse(response) {
+    const data = await response.json();
+    if (!response.ok) {
+        const errorMsg = data.error || 'Unknown error';
+        const errorDetails = data.details ? ` Details: ${JSON.stringify(data.details)}` : '';
+        throw new Error(`${response.status}: ${errorMsg}${errorDetails}`);
+    }
+    return data;
+}
+
+async function runArp() {
+    appendLog(`Initiating ARP scan...`);
+    const btn = document.getElementById('btn-arp');
+    btn.disabled = true;
+    try {
+        const response = await fetch('/api/scan_network', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': getApiKey() },
+            body: JSON.stringify({
+                target_cidr: document.getElementById('cidr').value.trim(),
+                interface: document.getElementById('iface').value.trim()
+            })
+        });
+        const data = await handleApiResponse(response);
+        appendLog(`✅ ARP Result: ${JSON.stringify(data)}`);
+    } catch (err) {
+        appendLog(`❌ ARP Error: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testCred() {
+    const ip = document.getElementById('cred-ip').value.trim();
+    const proto = document.getElementById('cred-proto').value;
+    appendLog(`Testing connectivity to ${ip} (${proto})...`);
+    try {
+        const response = await fetch('/api/test_credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': getApiKey() },
+            body: JSON.stringify({ ip, protocol: proto })
+        });
+        const data = await handleApiResponse(response);
+        appendLog(`✅ Connectivity Test: ${data.message}`);
+    } catch (e) {
+        appendLog(`❌ Connectivity Error: ${e.message}`);
+    }
+}
+
+async function startHydra() {
+    const ip = document.getElementById('hydra-ip').value.trim();
+    const proto = document.getElementById('hydra-proto').value;
+    const users = document.getElementById('hydra-users').value.trim();
+    const pass = document.getElementById('hydra-pass').value.trim();
+    appendLog(`Queueing Hydra attack on ${ip} (${proto})...`);
+    const btn = document.getElementById('hydra-btn');
+    btn.disabled = true;
+    try {
+        const response = await fetch('/api/hydra_attack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': getApiKey() },
+            body: JSON.stringify({
+                ip, protocol: proto,
+                username_wordlist: users, password_wordlist: pass
+            })
+        });
+        const data = await handleApiResponse(response);
+        if (data.job_id) {
+            appendLog(`Hydra job created: ${data.job_id}. Polling for status...`);
+            pollJob(data.job_id); // This is now a fire-and-forget call
+        }
+    } catch (e) {
+        appendLog(`❌ Hydra Error: ${e.message}`);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function runExploit() {
+    const ip = document.getElementById('exp-ip').value.trim();
+    const module = document.getElementById('exp-mod').value.trim();
+    appendLog(`Queueing Metasploit job: ${module} on ${ip}...`);
+    try {
+        const response = await fetch('/api/execute_exploit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': getApiKey() },
+            body: JSON.stringify({ ip, module })
+        });
+        const data = await handleApiResponse(response);
+        if (data.job_id) {
+            appendLog(`Metasploit job created: ${data.job_id}. Polling for status...`);
+            pollJob(data.job_id);
+        }
+    } catch (e) {
+        appendLog(`❌ Exploit Error: ${e.message}`);
+    }
+}
+
+// CORRECTED: This function is now async.
+async function pollJob(jobId) {
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for a max of 2 minutes (60 * 2000ms)
+    const interval = setInterval(async () => {
+        if (++pollCount > maxPolls) {
+            clearInterval(interval);
+            appendLog(`Job ${jobId} polling timed out. Check status manually.`);
+            return;
+        }
+        try {
+            const response = await fetch(`/api/job_status/${jobId}`, {
+                headers: { 'X-API-Key': getApiKey() }
+            });
+            const data = await handleApiResponse(response);
+            
+            if (data.status === 'done' || data.status === 'error') {
+                clearInterval(interval);
+                const finalStatus = data.status === 'done' ? '✅' : '❌';
+                appendLog(`${finalStatus} Job ${jobId} finished. Result: <pre>${JSON.stringify(JSON.parse(data.result || '""'), null, 2)}</pre>`);
+            } else {
+                 appendLog(`Job ${jobId} status: ${data.status}...`);
+            }
+        } catch (e) {
+            clearInterval(interval);
+            appendLog(`❌ Error polling job ${jobId}: ${e.message}`);
+        }
+    }, 2000);
+}
+</script>
+</body>
+</html>
